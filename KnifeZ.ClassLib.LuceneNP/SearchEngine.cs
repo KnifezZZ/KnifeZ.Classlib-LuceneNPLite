@@ -132,8 +132,6 @@ namespace KnifeZ.ClassLib.LuceneNP
                         //Console.WriteLine("解锁索引库完成");
                     }
                 }
-                lock (this)
-                {
                     IndexWriter writer = new IndexWriter(directory, new PanGuAnalyzer(), !isUpdate, IndexWriter.MaxFieldLength.UNLIMITED);
                     try
                     {
@@ -147,8 +145,6 @@ namespace KnifeZ.ClassLib.LuceneNP
                         writer.Dispose();
                         directory.Dispose();
                     }
-
-                }
                 //Console.WriteLine("全部索引完毕");
             }
         }

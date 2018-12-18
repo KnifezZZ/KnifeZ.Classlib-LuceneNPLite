@@ -64,6 +64,14 @@ namespace KnifeZ.ClassLib.LuceneNP
             sw.Stop();
             return time;
         }
+        public void AddSingleIndex(LiteNewsModel model)
+        {
+            IndexWriter writer = new IndexWriter(Direcotry, PanGuAnalyzer, false, IndexWriter.MaxFieldLength.LIMITED);
+            AddIndex(writer, model);
+            //释放资源
+            writer.Optimize();
+            writer.Dispose();
+        }
         /// <summary>
         /// 创建索引
         /// </summary>
@@ -142,7 +150,14 @@ namespace KnifeZ.ClassLib.LuceneNP
             IndexSearcher search = new IndexSearcher(Direcotry, true);
             // Stopwatch stopwatch = Stopwatch.StartNew();
             //SortField构造函数第三个字段true为降序,false为升序
-            Sort sort = new Sort(new SortField("addtime", SortField.DOC, true));
+            Sort sort = new Sort(new SortField[] {
+                SortField.FIELD_SCORE, new SortField("title", SortField.SCORE, true),
+                SortField.FIELD_SCORE,new SortField("abstract", SortField.SCORE, true),
+                SortField.FIELD_DOC,new SortField("content", SortField.SCORE, true),
+            }
+                //, new SortField("content", SortField.STRING_VAL, true)
+                );
+
             int maxNum = 100;//查询条数
             TopDocs docs = search.Search(bQuery, (Filter)null, maxNum, sort);
             if (docs != null)
@@ -182,7 +197,7 @@ namespace KnifeZ.ClassLib.LuceneNP
                 {
                     continue;
                 }
-                result.AppendFormat("{0}^{1}.0 ", word.Word, (int)Math.Pow(3, word.Rank));
+                result.AppendFormat("{0}^{1}.0 ", word.Word, (int)Math.Pow(2, word.Rank));
             }
             return result.ToString().Trim();
         }
