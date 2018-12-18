@@ -13,9 +13,10 @@ using LN = Lucene.Net;
 using System.Diagnostics;
 using System.IO;
 using Lucene.Net.Analysis.PanGu;
+
 namespace KnifeZ.ClassLib.LuceneNP
 {
-    public class Index
+    public class LNPIndex
     {
         /// <summary>
         /// 索引存放目录
@@ -80,7 +81,7 @@ namespace KnifeZ.ClassLib.LuceneNP
                 doc.Add(new Field("abstract", model.Abstract, Field.Store.YES, Field.Index.ANALYZED, Field.TermVector.WITH_POSITIONS_OFFSETS));
                 doc.Add(new Field("content", model.Content, Field.Store.YES, Field.Index.ANALYZED, Field.TermVector.WITH_POSITIONS_OFFSETS));
                 doc.Add(new Field("url", model.Url, Field.Store.YES, Field.Index.NOT_ANALYZED));
-                doc.Add(new Field("time", model.Time.ToString("yyyy-MM-dd HH:mm:ss"), Field.Store.YES, Field.Index.NOT_ANALYZED));
+                doc.Add(new Field("time", model.Time.ToString(), Field.Store.YES, Field.Index.NOT_ANALYZED));
                 writer.AddDocument(doc);
             }
             catch (FileNotFoundException fnfe)

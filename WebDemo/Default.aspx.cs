@@ -37,17 +37,17 @@ namespace WebDemo
             {
                 BillCode = "T20181102221",
                 Abstract = "描述测试测试",
-                Content = "测试测试测试测试信息内容",
+                Content = "测试测试测试测试信息111内容",
                 Time = DateTime.Now,
-                Title = "测试数据第一条2018",
-                Url = "https://www.test"
+                Title = "测试数据第一条20122228",
+                Url = "https://www.test.com/test.html"
             };
             return model;
         }
 
         protected void btn_AddIndex_Click(object sender, EventArgs e)
         {
-            SearchEngine.GetInstance().AddArticle("T20181102131023");
+            SearchEngine.GetInstance().AddArticle(GetModel("T20181102221"));
 
         }
 
@@ -55,14 +55,22 @@ namespace WebDemo
         {
             var list = MakeList();
             var ret=SearchEngine.CreatedIndex(list);
-
+            Label2.Text = ret;
         }
 
         protected void btn_Search_Click(object sender, EventArgs e)
         {
             var ret = SearchEngine.QueryList(qKey.Text, 10);
-
-
+            var html = "";
+            foreach (var item in ret)
+            {
+                html += "<div>";
+                html += "<h3>" + item.Title + "</h3>";
+                html += "<div class='content'>" + item.Abstract + "</div>";
+                html += "<div class='f3'>" + item.Url + "</div>";
+                html += "</div>";
+            }
+            retList.InnerHtml = html;
         }
     }
 }

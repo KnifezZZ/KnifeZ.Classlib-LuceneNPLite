@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Threading;
 using Lucene.Net.Analysis.PanGu;
+using Lucene.Net.Documents;
 using Lucene.Net.Index;
 using Lucene.Net.Store;
 
@@ -59,18 +60,21 @@ namespace KnifeZ.ClassLib.LuceneNP
         {
             public string Id { get; set; }
             public JobType JobType { get; set; }
+
+            public LiteNewsModel Model { get; set; }
         }
         /// <summary>
         /// 枚举,操作类型是增加还是删除
         /// </summary>
         enum JobType { Add, Remove }
 
-        public void AddArticle(string billCode)
+        public void AddArticle(LiteNewsModel model)
         {
             IndexJob job = new IndexJob
             {
-                Id = billCode,
-                JobType = JobType.Add
+                Id = model.BillCode,
+                JobType = JobType.Add,
+                Model=model
             };
             jobs.Enqueue(job);//把任务加入列表
         }
@@ -115,7 +119,7 @@ namespace KnifeZ.ClassLib.LuceneNP
                 {
                     System.IO.Directory.CreateDirectory(INDEX_DIR);
                 }
-                FSDirectory directory = FSDirectory.Open(new DirectoryInfo(INDEX_DIR), new NativeFSLockFactory());
+                Lucene.Net.Store.Directory directory = FSDirectory.Open(new DirectoryInfo(INDEX_DIR), new NativeFSLockFactory());
                 bool isUpdate = IndexReader.IndexExists(directory);
                 //Console.WriteLine("索引库存在状态" + isUpdate);
                 if (isUpdate)
@@ -128,10 +132,23 @@ namespace KnifeZ.ClassLib.LuceneNP
                         //Console.WriteLine("解锁索引库完成");
                     }
                 }
-                IndexWriter writer = new IndexWriter(directory, new PanGuAnalyzer(), !isUpdate, IndexWriter.MaxFieldLength.UNLIMITED);
-                ProcessJobs(writer);
-                writer.Dispose();
-                directory.Dispose();
+                lock (this)
+                {
+                    IndexWriter writer = new IndexWriter(directory, new PanGuAnalyzer(), !isUpdate, IndexWriter.MaxFieldLength.UNLIMITED);
+                    try
+                    {
+                        ProcessJobs(writer);
+                        writer.Dispose();
+                        directory.Dispose();
+                    }
+
+                    catch (ThreadAbortException ex)
+                    {
+                        writer.Dispose();
+                        directory.Dispose();
+                    }
+
+                }
                 //Console.WriteLine("全部索引完毕");
             }
         }
@@ -140,25 +157,26 @@ namespace KnifeZ.ClassLib.LuceneNP
             while (jobs.Count != 0)
             {
                 IndexJob job = jobs.Dequeue();
-                writer.DeleteDocuments(new Term("billCode", job.Id.ToString()));
-
+                writer.DeleteDocuments(new Term("billCode", job.Id));
                 if (job.JobType == JobType.Add)
                 {
-                    //ICommonDA commonDA = new CommonDA();
-                    //var model = commonDA.GetModel<SC_Content>(job.Id);
-                    var model = new LiteNewsModel();
+                    var model = job.Model;
                     if (model == null)//有可能刚添加就被删除了
                     {
                         continue;
                     }
-
-                    string billCode = model.BillCode.ToString();
-                    string title = model.Title;
-                    DateTime time = model.Time;
-                    string content = model.Content.ToString();
-                    string Addtime = model.Time.ToString("yyyy-MM-dd HH:mm:ss");
                     //添加索引
-                    Index.AddIndex(writer, model);
+
+                    Document doc = new Document();
+                    //只有对需要全文检索的字段才ANALYZED
+                    doc.Add(new Field("billCode", model.BillCode, Field.Store.YES, Field.Index.NOT_ANALYZED));
+                    doc.Add(new Field("title", model.Title, Field.Store.YES, Field.Index.ANALYZED, Field.TermVector.WITH_POSITIONS_OFFSETS));
+                    doc.Add(new Field("abstract", model.Abstract, Field.Store.YES, Field.Index.ANALYZED, Field.TermVector.WITH_POSITIONS_OFFSETS));
+                    doc.Add(new Field("content", model.Content, Field.Store.YES, Field.Index.ANALYZED, Field.TermVector.WITH_POSITIONS_OFFSETS));
+                    doc.Add(new Field("url", model.Url, Field.Store.YES, Field.Index.NOT_ANALYZED));
+                    doc.Add(new Field("time", model.Time.ToString(), Field.Store.YES, Field.Index.NOT_ANALYZED));
+                    writer.AddDocument(doc);
+                    //LNPIndex.AddIndex(writer, model);
                 }
             }
         }
@@ -170,13 +188,13 @@ namespace KnifeZ.ClassLib.LuceneNP
         /// <returns></returns>
         public static string CreatedIndex(List<LiteNewsModel> list)
         {
-            Index index = new Index();
+            LNPIndex index = new LNPIndex();
             var time=index.CreatedIndex(list);
             return "共计消耗 " + time + " 秒";
         }
         public static List<LiteNewsModel> QueryList(string qkey,int top)
         {
-            Index index = new Index();
+            LNPIndex index = new LNPIndex();
             var ret = index.SearchIndex(qkey);
             return ret;
         }

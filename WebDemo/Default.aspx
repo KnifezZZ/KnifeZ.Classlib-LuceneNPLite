@@ -13,9 +13,11 @@
             <asp:TextBox ID="qKey" runat="server"></asp:TextBox>
             <asp:Button ID="btn_Search" runat="server" Text="查询" OnClick="btn_Search_Click"></asp:Button>
             <asp:Button ID="btn_AddIndex" runat="server" Text="添加索引" OnClick="btn_AddIndex_Click"></asp:Button>
-            <asp:Button ID="btn_CreateAllIndex" runat="server" Text="添加索引" OnClick="btn_CreateAllIndex_Click"></asp:Button>
+            <asp:Button ID="btn_CreateAllIndex" runat="server" Text="新建索引" OnClick="btn_CreateAllIndex_Click"></asp:Button>
 
             <asp:Label ID="Label2" runat="server" Text=""></asp:Label>
+        </div>
+        <div id="retList" runat="server">
         </div>
     </form>
 </body>
