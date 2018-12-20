@@ -60,7 +60,7 @@ namespace WebDemo
 
         protected void btn_Search_Click(object sender, EventArgs e)
         {
-            var ret = SearchEngine.QueryList(qKey.Text, 10);
+            var ret = SearchEngine.QueryList(qKey.Text, 100);
             var html = "";
             foreach (var item in ret)
             {

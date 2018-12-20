@@ -191,7 +191,7 @@ namespace KnifeZ.ClassLib.LuceneNP
         public static List<LiteNewsModel> QueryList(string qkey,int top)
         {
             LNPIndex index = new LNPIndex();
-            var ret = index.SearchIndex(qkey);
+            var ret = index.SearchIndex(qkey,top);
             return ret;
         }
     }

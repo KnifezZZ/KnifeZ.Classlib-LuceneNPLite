@@ -105,7 +105,7 @@ namespace KnifeZ.ClassLib.LuceneNP
         /// <summary>
         /// 查询多个字段
         /// </summary>
-        internal List<LiteNewsModel> SearchIndex(string searchKey)
+        internal List<LiteNewsModel> SearchIndex(string searchKey,int top)
         {
             Dictionary<string, string> dic = new Dictionary<string, string>();
             BooleanQuery bQuery = new BooleanQuery();
@@ -134,7 +134,7 @@ namespace KnifeZ.ClassLib.LuceneNP
 
             if (bQuery != null && bQuery.GetClauses().Length > 0)
             {
-                return GetSearchResult(bQuery, dic);
+                return GetSearchResult(bQuery, dic,top);
             }
             return new List<LiteNewsModel>();
         }
@@ -144,7 +144,8 @@ namespace KnifeZ.ClassLib.LuceneNP
         /// 获取
         /// </summary>
         /// <param name="bQuery"></param>
-        private List<LiteNewsModel> GetSearchResult(BooleanQuery bQuery, Dictionary<string, string> dicKeywords)
+        /// <param name="maxNum">查询条数</param>
+        private List<LiteNewsModel> GetSearchResult(BooleanQuery bQuery, Dictionary<string, string> dicKeywords,int maxNum=100)
         {
             var list = new List<LiteNewsModel>();
             IndexSearcher search = new IndexSearcher(Direcotry, true);
@@ -153,17 +154,13 @@ namespace KnifeZ.ClassLib.LuceneNP
             Sort sort = new Sort(new SortField[] {
                 SortField.FIELD_SCORE, new SortField("title", SortField.SCORE, true),
                 SortField.FIELD_SCORE,new SortField("abstract", SortField.SCORE, true),
-                SortField.FIELD_DOC,new SortField("content", SortField.SCORE, true),
-            }
-                //, new SortField("content", SortField.STRING_VAL, true)
-                );
-
-            int maxNum = 100;//查询条数
+                SortField.FIELD_DOC,new SortField("content", SortField.DOC, true),
+            });
             TopDocs docs = search.Search(bQuery, (Filter)null, maxNum, sort);
             if (docs != null)
             {
-
-                for (int i = 0; i < docs.TotalHits && i < maxNum; i++)
+                var count = docs.TotalHits > maxNum ? maxNum : docs.TotalHits;
+                for (int i = 0; i < count; i++)
                 {
                     Document doc = search.Doc(docs.ScoreDocs[i].Doc);
                     LiteNewsModel model = new LiteNewsModel()
@@ -210,31 +207,32 @@ namespace KnifeZ.ClassLib.LuceneNP
         /// <returns></returns>
         private LiteNewsModel SetHighlighter(Dictionary<string, string> dicKeywords, LiteNewsModel model)
         {
+            //return model;
             SimpleHTMLFormatter simpleHTMLFormatter = new PanGu.HighLight.SimpleHTMLFormatter("<font color=\"red\">", "</font>");
             Highlighter highlighter = new PanGu.HighLight.Highlighter(simpleHTMLFormatter, new Segment())
             {
                 FragmentSize = 50
             };
             string strTitle = string.Empty;
-            string strContent = string.Empty;
             string strAbstract = string.Empty;
             dicKeywords.TryGetValue("title", out strTitle);
             dicKeywords.TryGetValue("abstract", out strAbstract);
-            dicKeywords.TryGetValue("content", out strContent);
-            if (!string.IsNullOrEmpty(strTitle))
+            try
             {
-                var transStr = highlighter.GetBestFragment(strTitle, model.Title);
-                model.Title = string.IsNullOrEmpty(transStr) ? model.Title : transStr;
+                if (!string.IsNullOrEmpty(strTitle))
+                {
+                    var transStr = highlighter.GetBestFragment(strTitle, model.Title);
+                    model.Title = string.IsNullOrEmpty(transStr) ? model.Title : transStr;
+                }
+                if (!string.IsNullOrEmpty(strAbstract))
+                {
+                    var transStr = highlighter.GetBestFragment(strAbstract, model.Abstract);
+                    model.Abstract = string.IsNullOrEmpty(transStr) ? model.Abstract : transStr;
+                }
             }
-            if (!string.IsNullOrEmpty(strContent))
+            catch
             {
-                var transStr = highlighter.GetBestFragment(strContent, model.Content);
-                model.Content = string.IsNullOrEmpty(transStr) ? model.Content : transStr;
-            }
-            if (!string.IsNullOrEmpty(strAbstract))
-            {
-                var transStr = highlighter.GetBestFragment(strAbstract, model.Abstract);
-                model.Abstract = string.IsNullOrEmpty(transStr) ? model.Content : transStr;
+                return model;
             }
             return model;
         }
